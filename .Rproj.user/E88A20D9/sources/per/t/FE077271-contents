@@ -1,0 +1,25 @@
+install.packages("rworldmap")
+library(rworldmap)
+library(jsonlite)
+library(dplyr)
+library(ggplot2)
+library(readr)
+
+data <- read.csv("C:/Users/DennyLin/Desktop/大數據分析/作業二/Data_3.csv",stringsAsFactors = F)
+data$總人數 <- as.numeric(gsub(",","",data$總人數))
+str(data)
+data_ranking <- data[order(data$總人數,decreasing = T),]
+head(data_ranking)
+
+Data_country <- fromJSON("C:/Users/DennyLin/Desktop/大數據分析/作業二/countries.json")
+Data_country <- data.frame(english = Data_country$ISO3,國別 = Data_country$Taiwan,stringsAsFactors = F)
+Data_country$國別[48] <- "中國大陸"
+data_ranking <- inner_join(data_ranking,Data_country,by = "國別")
+mapping_data <- data.frame(country = data_ranking$english, value = data_ranking$總人數)
+mapping_data$region <- toupper(data_ranking$english)
+
+matched <- joinCountryData2Map(mapping_data, joinCode="ISO3", nameJoinColumn="country")
+mapCountryData(matched, nameColumnToPlot="value", mapTitle="Met Collection Country Sample", catMethod = "pretty", colourPalette = "heat")
+
+
+data("countryExData",envir=environment(),package="rworldmap")

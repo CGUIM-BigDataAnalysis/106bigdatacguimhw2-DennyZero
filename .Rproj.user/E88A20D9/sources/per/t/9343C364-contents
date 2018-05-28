@@ -1,0 +1,53 @@
+library(readr)
+library(ggplot2)
+library(jsonlite)
+library(dplyr)
+library(rworldmap)
+
+# import data -------------------------------------------------------------
+
+data <- read.csv("C:/Users/DennyLin/Desktop/大數據分析/作業二/student1.csv",stringsAsFactors = F)
+str(data)
+
+# country rank ------------------------------------------------------------
+
+country_numbers <- data.frame(table(data$對方學校國別))
+country_numbers$Var1 <- as.character(country_numbers$Var1)
+names(country_numbers) <- c("國別","人數")
+country_ranking <- country_numbers[order(country_numbers$人數,decreasing = T),]
+head(country_ranking,10)
+
+# country bar chart -------------------------------------------------------
+
+country_ranking_barchart <- country_ranking
+othercountries <- 0
+for (i in 1:116 ){ if (country_ranking_barchart[i,2] < 350) {othercountries = othercountries+country_ranking_barchart[i,2]; country_ranking_barchart[i,2] <- 0; }
+}
+country_ranking_barchart[117,1] <- "Others"
+country_ranking_barchart[117,2] <- othercountries
+country_ranking_barchart <- filter(country_ranking_barchart,人數 >350 )
+country_bar <- ggplot() + geom_bar(data =country_ranking_barchart, aes(x = 國別,y = 人數),stat = "identity") 
+country_bar
+
+# world map ---------------------------------------------------------------
+
+Data_country <- fromJSON("C:/Users/DennyLin/Desktop/大數據分析/作業二/countries.json")
+Data_country <- data.frame(english = Data_country$ISO3,國別 = Data_country$Taiwan,stringsAsFactors = F)
+str(Data_country)
+country_ranking <- inner_join(country_ranking,Data_country,by = "國別")
+mapping_data <- data.frame(country = country_ranking$english, value = country_ranking$Freq)
+mapping_data$region <- toupper(data_ranking$english)
+matched <- joinCountryData2Map(mapping_data, joinCode="ISO3", nameJoinColumn="country")
+mapCountryData(matched, nameColumnToPlot="value", mapTitle="Met Collection Country Sample", catMethod = "pretty", colourPalette = "heat")
+
+# school_rank ----------------------------------------------------------
+
+school_numbers <- data.frame(table(data$校名))
+names(school_numbers) <- c("校名","人數")
+school_raking <- school_numbers[order(school_numbers$人數,decreasing = T),]
+head(school_raking,10)
+
+# school bar chart -------------------------------------------------------
+
+school_bar <- ggplot() + geom_bar(data = school_ranking, aes(x = 校名,y = 人數),stat = "identity") 
+school_bar

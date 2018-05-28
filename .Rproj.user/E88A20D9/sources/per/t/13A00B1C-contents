@@ -1,0 +1,96 @@
+library(jsonlite)
+library(RCurl)
+library(dplyr)
+library(ggplot2)
+library(rworldmap)
+library(readr)
+
+# Country -----------------------------------------------------------------
+
+url_103_country <- "https://quality.data.gov.tw/dq_download_json.php?nid=6289&md5_url=25f64d5125016dcd6aed42e50c972ed0"
+url_104_country <- "https://quality.data.gov.tw/dq_download_json.php?nid=6289&md5_url=4d3e9b37b7b0fd3aa18a388cdbc77996"
+url_105_country <- "https://quality.data.gov.tw/dq_download_json.php?nid=6289&md5_url=19bedf88cf46999da12513de755c33c6"
+url_106_country <- "https://quality.data.gov.tw/dq_download_json.php?nid=6289&md5_url=50e3370f9f8794f2054c0c82a2ed8c91"
+
+data_103_country <- fromJSON(url_103_country)[,2:11];   data_104_country <- fromJSON(url_104_country)[,2:11];
+data_105_country <- fromJSON(url_105_country)[,2:11];   data_106_country <- fromJSON(url_106_country)[,2:11];
+
+for (i in 2:10 ){data_103_country[,i] <- as.numeric(data_103_country[,i]) } ; for (i in 2:10 ){data_104_country[,i] <- as.numeric(data_104_country[,i]) }
+for (i in 2:10 ){data_105_country[,i] <- as.numeric(data_105_country[,i]) } ; for (i in 2:10 ){data_106_country[,i] <- as.numeric(data_106_country[,i]) }
+
+data_103_country$total_103 <- rowSums(data_103_country[,2:10]);  data_104_country$total_104 <- rowSums(data_104_country[,2:10])
+data_105_country$total_105 <- rowSums(data_105_country[,2:10]);  data_106_country$total_106 <- rowSums(data_106_country[,2:10])
+
+totaldata_103_country <- data.frame(國別 = data_103_country[,1], total_103 = data_103_country[,11]);  
+totaldata_104_country <- data.frame(國別 = data_104_country[,1], total_104 = data_104_country[,11]);
+totaldata_105_country <- data.frame(國別 = data_105_country[,1], total_105 = data_105_country[,11]);  
+totaldata_106_country <- data.frame(國別 = data_106_country[,1], total_106 = data_106_country[,11]);
+
+totaldata_country <- full_join(totaldata_103_country,totaldata_104_country,by = "國別");
+totaldata_country <- full_join(totaldata_country,totaldata_105_country,by = "國別")
+totaldata_country <- full_join(totaldata_country,totaldata_106_country,by = "國別");
+
+totaldata_country[is.na(totaldata_country)] <- 0
+
+totaldata_country <- mutate(totaldata_country,total_average = rowSums(totaldata_country[,2:5]/4))
+totaldata_country<- totaldata_country[order(totaldata_country$total_average,decreasing = T),]
+head(totaldata_country,10)
+
+
+# bar chart ---------------------------------------------------------------
+
+totaldata_country_barchart <- totaldata_country
+othercountries <- 0
+for (i in 1:177 ){ if (totaldata_country_barchart[i,6] < 1000) {othercountries = othercountries+totaldata_country_barchart[i,6]; totaldata_country_barchart[i,6] <- 0; }
+}
+totaldata_country_barchart[178,1] <- "Others"
+totaldata_country_barchart[178,6] <- othercountries
+totaldata_country_barchart <- filter(totaldata_country_barchart,total_average >1000 )
+country_bar <- ggplot() + geom_bar(data = totaldata_country_barchart, aes(x = 國別,y = total_average),stat = "identity") 
+country_bar
+
+
+# world map ---------------------------------------------------------------
+
+Data_country <- fromJSON("C:/Users/DennyLin/Desktop/大數據分析/作業二/countries.json")
+Data_country <- data.frame(english = Data_country$ISO3,國別 = Data_country$Taiwan,stringsAsFactors = F)
+Data_country$國別[48] <- "中國大陸"
+str(Data_country)
+country_ranking <- inner_join(totaldata_country,Data_country,by = "國別")
+mapping_data <- data.frame(country = country_ranking$english, value = country_ranking$total_average)
+mapping_data$region <- toupper(data_ranking$english)
+matched <- joinCountryData2Map(mapping_data, joinCode="ISO3", nameJoinColumn="country")
+mapCountryData(matched, nameColumnToPlot="value", mapTitle="Met Collection Country Sample", catMethod = "pretty", colourPalette = "heat")
+
+# School ------------------------------------------------------------------
+
+url_103_school <- "https://quality.data.gov.tw/dq_download_json.php?nid=6289&md5_url=a6d1469f39fe41fb81dbfc373aef3331"
+url_104_school <- "https://quality.data.gov.tw/dq_download_json.php?nid=6289&md5_url=8baeae81cba74f35cf0bb1333d3d99f5"
+url_105_school <- "https://quality.data.gov.tw/dq_download_json.php?nid=6289&md5_url=1a485383cf9995da679c3798ab4fd681"
+url_106_school <- "https://quality.data.gov.tw/dq_download_json.php?nid=6289&md5_url=883e2ab4d5357f70bea9ac44a47d05cc"
+
+data_103_school <- fromJSON(url_103_school)[,3:12]; data_104_school <- fromJSON(url_104_school)[,3:12]
+data_105_school <- fromJSON(url_105_school)[,3:12]; data_106_school <- fromJSON(url_106_school)[,3:12]
+
+data_103_school[,8] <- gsub("…","0",data_103_school[,8]); data_104_school[,8] <- gsub("…","0",data_104_school[,8])
+
+for (i in 2:10 ){data_103_school[,i] <- as.numeric(data_103_school[,i]) } ; for (i in 2:10 ){data_104_school[,i] <- as.numeric(data_104_school[,i]) }
+for (i in 2:10 ){data_105_school[,i] <- as.numeric(data_105_school[,i]) } ; for (i in 2:10 ){data_106_school[,i] <- as.numeric(data_106_school[,i]) }
+
+data_103_school$total_103_school <- rowSums(data_103_school[,2:10]); data_104_school$total_104_school <- rowSums(data_104_school[,2:10])
+data_105_school$total_105_school <- rowSums(data_105_school[,2:10]); data_106_school$total_106_school <- rowSums(data_106_school[,2:10])
+
+totaldata_103_school <- data.frame(校名 = data_103_school[,1],total_103_school = data_103_school[,11]);
+totaldata_104_school <- data.frame(校名 = data_104_school[,1],total_104_school = data_104_school[,11]);
+totaldata_105_school <- data.frame(校名 = data_105_school[,1],total_105_school = data_105_school[,11]);
+totaldata_106_school <- data.frame(校名 = data_106_school[,1],total_106_school = data_106_school[,11]);
+
+totaldata_school <- full_join(totaldata_103_school,totaldata_104_school,by = "校名");
+totaldata_school <- full_join(totaldata_school,totaldata_105_school,by = "校名");
+totaldata_school <- full_join(totaldata_school,totaldata_106_school,by = "校名")
+
+totaldata_school[is.na(totaldata_school)] <- 0
+
+totaldata_school <- mutate(totaldata_school,total_average = rowSums(totaldata_school[,2:5]/4))
+totaldata_school<- totaldata_school[order(totaldata_school$totalaverage,decreasing = T),]
+head(totaldata_school,10)
